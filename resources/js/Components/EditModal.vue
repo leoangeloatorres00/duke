@@ -127,6 +127,7 @@ const editConfirmed = () => {
             const conditionErrors = errors.condition;
             const serialNumberErrors = errors.serial_number;
             const siteErrors = errors.site_id;
+            const userTypeErrors = errors.user_type;
 
             form.errors.description = ''
             if (descriptionErrors && descriptionErrors.length > 0) {
@@ -155,6 +156,12 @@ const editConfirmed = () => {
             form.errors.site_id = ''
             if (siteErrors && siteErrors.length > 0) {
                 form.errors.site_id = siteErrors[0];
+                // Output: "This name has already been taken."
+            }
+
+            form.errors.user_type = ''
+            if (userTypeErrors && userTypeErrors.length > 0) {
+                form.errors.user_type = userTypeErrors[0];
                 // Output: "This name has already been taken."
             }
         });

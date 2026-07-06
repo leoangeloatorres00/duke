@@ -46,7 +46,7 @@ const setFormData = () => {
         form.serial_number = ''
         form.description = ''
         form.condition = ''
-        form.site = ''
+        form.site_id = ''
     }
 }
 

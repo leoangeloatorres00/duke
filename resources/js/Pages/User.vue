@@ -63,12 +63,22 @@ const confirmEdit = (item) => {
         id: item.user_id,
     }
 }
+
+const closeEdit = () => {
+    isEditModalOpen.value = false
+    getUserList()
+}
+
+const closeDelete = () => {
+    isDeleteModalOpen.value = false
+    getUserList()
+}
 </script>
 
 <template>
-    <EditModal :show="isEditModalOpen" :data="editData" @close="isEditModalOpen = false"></EditModal>
+    <EditModal :show="isEditModalOpen" :data="editData" @close="closeEdit"></EditModal>
 
-    <DeleteModal :show="isDeleteModalOpen" :data="deleteData" @close="isDeleteModalOpen = false"></DeleteModal>
+    <DeleteModal :show="isDeleteModalOpen" :data="deleteData" @close="closeDelete"></DeleteModal>
 
     <Table :headers="tableHeaders" :items="tableData">
         <template #cell-action="{ row }">

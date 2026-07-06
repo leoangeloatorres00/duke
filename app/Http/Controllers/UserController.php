@@ -57,7 +57,7 @@ class UserController extends Controller
         $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'user_type' => 'required|string|in:Admin,Super Admin'
+            'user_type' => 'required|string|in:Admin,SuperAdmin'
         ], [
             'description.unique' => 'This equipment has already been taken.', 
             'serial_number.unique' => 'This serial number must be unique per equipment.', 
