@@ -1,6 +1,10 @@
 <script setup>
 import { inject } from 'vue'
 
+import { useApi } from '@/Composables/useApi'
+
+import { ROUTE } from '@/Constants/Routes'
+
 import Modal from '@/Components/Modal.vue'
 import DangerButton from '@/Components/DangerButton.vue'
 import SecondaryButton from '@/Components/SecondaryButton.vue'
@@ -12,23 +16,31 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
-const tab = inject('tab');
+const { deleteData } = useApi();
+
+const currentTab = inject('currentTab');
+
+const ROUTE_MAP = {
+    user: ROUTE.USER_DELETE_DATA,
+    site: ROUTE.SITE_DELETE_DATA,
+    equipment: ROUTE.EQUIPMENT_DELETE_DATA,
+}
+
+const submitDeleteData = async () => {
+    const id = props.data[`${currentTab.value}_id`]
+    const url = route(ROUTE_MAP[currentTab.value], id)
+
+    const response = await deleteData(url);
+
+    if (response.code == 200) {
+        alert(response.message)
+    }
+
+    closeModal();
+};
 
 const closeModal = () => {
     emit('close');
-};
-
-const deleteConfirmed = () => {
-    const id = props.data.id
-    const url = route(`${tab.value}.destroy`, id)
-
-    axios.delete(url)
-        .then(response => {
-            closeModal();
-        })
-        .catch(error => {
-            console.error(`Deleting ${tab.value}'s items:`, error);
-        });
 };
 </script>
 
@@ -49,7 +61,7 @@ const deleteConfirmed = () => {
                     Cancel
                 </SecondaryButton>
 
-                <DangerButton class="ms-3" @click="deleteConfirmed">
+                <DangerButton class="ms-3" @click="submitDeleteData">
                     Delete
                 </DangerButton>
             </div>

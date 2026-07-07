@@ -2,23 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\SiteRequest;
 
-use App\Models\RegisteredEquipment;
-use App\Models\Equipment;
-use App\Models\Site;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
+use App\Services\SiteService;
 
 class SiteController extends Controller
 {
+    public function __construct(protected SiteService $siteService) {}
+
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(SiteRequest $request)
     {
-        $authId = $request->user_id;
-        return response()->json(Site::where('user_id', $authId)->paginate(10));
+        $request->validated();
+
+        $result = $this->siteService->getSiteData($request);
+
+        return response()->json($result);
     }
 
     /**
@@ -32,19 +33,15 @@ class SiteController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(SiteRequest $request)
     {
-        $request->validate([
-            'description' => 'required|string|max:255|unique:site,description',
-            'active' => 'required|integer'
-        ], [
-            'description.unique' => 'This site name has already been taken.', 
-        ]);
+        $request->validated();
 
-        Site::create([
-            'user_id' => $request->user_id,
-            'description' => $request->description,
-            'active' => $request->active   
+        $this->siteService->createSiteData($request);
+
+        return response()->json([
+            'message' => 'Site details is successfully created.',
+            'code' => 200
         ]);
     }
 
@@ -53,7 +50,7 @@ class SiteController extends Controller
      */
     public function show(string $id)
     {
-        return response()->json(Site::find($id));
+        //
     }
 
     /**
@@ -67,25 +64,16 @@ class SiteController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(SiteRequest $request, string $id)
     {
-        $request->validate([
-            'description' => [
-                'required',
-                'string',
-                Rule::unique('site', 'description')->ignore($id, 'site_id')
-            ],
-            'active' => 'required|integer'
-        ], [
-            'description.unique' => 'This site name has already been taken.', 
-        ]);
+        $request->validated();
 
-        $site = Site::find($id);
+        $this->siteService->updateSiteData($request, $id);
 
-        $site->user_id = $request->user_id;
-        $site->description = $request->description;
-        $site->active = $request->active;
-        $site->save();
+        return response()->json([
+            'message' => 'Site details is successfully updated.',
+            'code' => 200
+        ]); 
     }
 
     /**
@@ -93,12 +81,11 @@ class SiteController extends Controller
      */
     public function destroy(string $id)
     {
-        $equipmentIds = RegisteredEquipment::where('site_id', $id)
-            ->pluck('equipment_id')
-            ->toArray();
+        $this->siteService->deleteSiteData($id);
 
-        Equipment::whereIn('equipment_id', $equipmentIds)->delete();
-
-        Site::destroy($id);
+        return response()->json([
+            'message' => 'Site details is successfully deleted.',
+            'code' => 200
+        ]); 
     }
 }

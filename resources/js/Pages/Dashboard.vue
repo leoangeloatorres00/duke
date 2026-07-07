@@ -1,84 +1,100 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { onMounted, ref, provide } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import { onMounted, ref, computed, provide } from 'vue';
 
-import User from './User.vue';
-import Site from './Site.vue';
-import Equipment from './Equipment.vue';
+import { getFullName } from '@/utils';
+
+import { useApi } from '@/Composables/useApi'
+import { useSite } from '@/Composables/useSite'
+
+import { TABS } from '@/Constants/Tabs'
+import { ROUTE } from '@/Constants/Routes'
+import { HEADERS } from '@/Constants/TableHeaders';
+
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+
+import Tabs from '@/Components/Tabs.vue';
+import Table from '@/Components/Table.vue';
+import Badge from '@/Components/Badge.vue';
+import EditIcon from '@/Components/EditIcon.vue'
+import DeleteIcon from '@/Components/DeleteIcon.vue'
+import Pagination from '@/Components/Pagination.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
 
 import AddModal from '@/Components/AddModal.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
+import EditModal from '@/Components/EditModal.vue';
+import DeleteModal from '@/Components/DeleteModal.vue';
 
 const { props } = usePage();
 
+const { getData: fetchData } = useApi();
+const { getSiteData } = useSite();
 
+const modalData = ref({});
+const currentTab = ref(TABS.USER);
+const currentUser = ref(props.auth.user);
 
-const sitePage = ref({})
-const equipmentPage = ref({})
+const isAddModalOpen = ref(false);
+const isEditModalOpen = ref(false);
+const isDeleteModalOpen = ref(false);
 
-const user = ref({})
-const tab = ref(null)
-const sites = ref([])
-const addData = ref({})
-const userType = ref(null)
-const isAddModalOpen = ref(false)
+const pages = ref({});
+const items = ref([]);
+const headers = ref([]);
 
-const tabs = [
-    {
-        key: "user",
-        label: "User"
-    },
-    {
-        key: "site",
-        label: "Site",
-    },
-    {
-        key: "equipment",
-        label: "Equipment",
-    },
-];
-
-onMounted(() => {
-    user.value = props.auth.user
-    userType.value = user.value.user_type;
-
-    if (userType.value === 'Admin') tab.value = 'site';
-    if (userType.value !== 'Admin') tab.value = 'user';
-
-    getSiteList();
-})
-
-const filterTabs = computed(() => {
-    if (userType.value === 'Admin') tabs.shift();
-    return tabs;
-});
-
-const getSiteList = (page = 1) => {
-    const user_id = user.value.user_id
-    const url = route(`site.index`, { 'user_id': user_id, 'page': page });
-
-    axios.get(url)
-        .then(response => {
-            const { data } = response.data;
-            sites.value = data
-        })
-        .catch(error => {
-            console.error(`Deleting ${tab.value}'s items:`, error);
-        });
+const HEADER_MAP = {
+    user: HEADERS.USER,
+    site: HEADERS.SITE,
+    equipment: HEADERS.EQUIPMENT,
 }
 
-const selectItem = (id) => {
-    const item = tabs[id];
-    tab.value = item.key
+const ROUTE_MAP = {
+    user: ROUTE.USER_DATA,
+    site: ROUTE.SITE_DATA,
+    equipment: ROUTE.EQUIPMENT_DATA,
+}
 
-    if (tab.value === 'equipment') {
-        getSiteList();
+onMounted(async () => {
+    changeTableHeader(currentTab.value);
+});
+
+const getTableHeader = () => {
+    headers.value = HEADER_MAP[currentTab.value];
+}
+
+const getTableData = async (page = 1) => {
+    const user_id = currentUser.value.user_id;
+
+    const url = route(ROUTE_MAP[currentTab.value]);
+    const params = { user_id: user_id, page: page };
+
+    try {
+        const response = await fetchData(url, params);
+
+        items.value = response.data
+
+        pages.value = {
+            links: response.links,
+            lastPage: response.last_page,
+            currentPage: response.current_page,
+        }
+    } catch (err) {
+        console.log(err)
     }
-};
+}
 
-const confirmAdd = () => {
-    if (sites.value.length == 0 && tab.value == 'equipment') {
+const changeTableHeader = (value) => {
+    currentTab.value = value;
+
+    getTableHeader();
+
+    getTableData();
+}
+
+const openAddModal = async () => {
+    const sites = await getSiteData();
+
+    if (sites.length == 0 && currentTab.value == TABS.EQUIPMENT) {
         alert("A site must be added first before adding equipment.");
         return
     }
@@ -86,55 +102,77 @@ const confirmAdd = () => {
     isAddModalOpen.value = true;
 }
 
-const closeAdd = () => {
-    isAddModalOpen.value = false
-
-    if (tab.value === 'site') {
-        sitePage.value.getSiteList()
-    }
-
-    if (tab.value === 'equipment') {
-        equipmentPage.value.getEquipmentList()
-    }
+const openEditModal = (item) => {
+    isEditModalOpen.value = true;
+    modalData.value = item;
 }
 
-provide('tab', tab)
-provide('user', user)
+const openDeleteModal = (item) => {
+    isDeleteModalOpen.value = true;
+    modalData.value = item;
+}
+
+const closeModal = () => {
+    isAddModalOpen.value = false;
+    isEditModalOpen.value = false;
+    isDeleteModalOpen.value = false;
+
+    setTimeout(() => {
+        getTableData();
+    }, 100)
+}
+
+provide('currentTab', currentTab)
+provide('currentUser', currentUser)
 </script>
 
 <template>
     <AuthenticatedLayout>
         <div class="mx-auto max-w-7xl p-4 sm:p-8">
             <div className="p-8 bg-white shadow-sm rounded-lg">
-                <AddModal :show="isAddModalOpen" :data="addData" @close="closeAdd"></AddModal>
+                <AddModal :show="isAddModalOpen" @close="closeModal" />
 
-                <div class="flex items-center justify-between">
-                    <!-- Tabs -->
-                    <ul role="tablist" aria-label="Dashboard sections"
-                        class="inline-flex flex-wrap font-medium text-sm text-slate-600 rounded-md border border-slate-300 divide-x divide-slate-300">
-                        <li v-for="(filterTab, index) in filterTabs" :key="index">
-                            <button :class="`tab py-2 px-3.5 cursor-pointer transition-colors hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 
-                                ${index === 0 ? 'rounded-l-[5px]' : index === tabs.length - 1 ? 'rounded-r-[5px]' : ''}
-                                ${tab === filterTab.key ? 'text-slate-900 bg-slate-100' : ''}`"
-                                @click="selectItem(index)">
+                <EditModal :show="isEditModalOpen" :data="modalData" @close="closeModal" />
 
-                                {{ filterTab.label }}
-                            </button>
-                        </li>
-                    </ul>
+                <DeleteModal :show="isDeleteModalOpen" :data="modalData" @close="closeModal" />
 
-                    <SecondaryButton @click="confirmAdd()" v-if="tab !== 'user'">
+                <div class="flex justify-between">
+                    <Tabs :currentTab="currentTab" @handleChangeTab="changeTableHeader" />
+
+                    <SecondaryButton @click="openAddModal" v-if="currentTab !== TABS.USER">
                         Add Record
                     </SecondaryButton>
                 </div>
 
                 <div class="mt-6">
-                    <User ref="userPage" v-if="tab === 'user'"></User>
+                    <Table :headers="headers" :items="items">
+                        <template #cell-owner="{ item }">
+                            <span>{{ getFullName(item.user) }}</span>
+                        </template>
 
-                    <Site ref="sitePage" v-if="tab === 'site'"></Site>
+                        <template #cell-active="{ value }">
+                            <Badge :text="value ? 'Active' : 'Inactive'" :variant="value ? 'success' : 'danger'" />
+                        </template>
 
-                    <Equipment ref="equipmentPage" v-if="tab === 'equipment'"></Equipment>
+                        <template #cell-condition="{ value }">
+                            <Badge :text="value" :variant="value === 'Working' ? 'success' : 'danger'" />
+                        </template>
+
+                        <template #cell-action="{ item }">
+                            <div class="flex gap-2 w-[100px]">
+                                <button>
+                                    <EditIcon @click="openEditModal(item)" aria-label="Open edit modal"></EditIcon>
+                                </button>
+                                <button>
+                                    <DeleteIcon @click="openDeleteModal(item)" aria-label="Open delete modal">
+                                    </DeleteIcon>
+                                </button>
+                            </div>
+                        </template>
+                    </Table>
                 </div>
+
+                <Pagination :pages="pages" @handleClick="getTableData" />
             </div>
         </div>
     </AuthenticatedLayout>

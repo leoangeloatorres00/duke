@@ -26,7 +26,7 @@ defineProps({
             <tbody class="text-sm divide-y divide-slate-200">
                 <tr v-for="(item, index) in items" :key="index" class="hover:bg-slate-200 even:bg-slate-50">
                     <td v-for="header in headers" :key="header.key" class="px-4 py-4 text-slate-500 whitespace-nowrap">
-                        <slot :name="`cell-${header.key}`" :value="item[header.key]" :row="item">
+                        <slot :name="`cell-${header.key}`" :value="item[header.key]" :item="item">
                             {{ item[header.key] }}
                         </slot>
                     </td>

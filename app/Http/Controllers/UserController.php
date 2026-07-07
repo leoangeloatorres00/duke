@@ -2,22 +2,29 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UserRequest;
+
 use Illuminate\Http\Request;
 
-use App\Models\User;
+use App\Services\UserService;
 
 class UserController extends Controller
 {
+    public function __construct(protected UserService $userService) {}
+
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(UserRequest $request)
     {
-        $authId = $request->user_id;
-        return response()->json(User::where('user_id', '!=', $authId)->paginate(10));
+        $request->validated();
+
+        $result = $this->userService->getUserData($request);
+
+        return response()->json($result);
     }
 
-    /**
+    /**   
      * Show the form for creating a new resource.
      */
     public function create()
@@ -38,7 +45,7 @@ class UserController extends Controller
      */
     public function show(string $id)
     {
-        return response()->json(User::find($id));
+        //
     }
 
     /**
@@ -52,23 +59,16 @@ class UserController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(UserRequest $request, string $id)
     {
-        $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'user_type' => 'required|string|in:Admin,SuperAdmin'
-        ], [
-            'description.unique' => 'This equipment has already been taken.', 
-            'serial_number.unique' => 'This serial number must be unique per equipment.', 
+        $request->validated();
+
+        $this->userService->updateUserData($request, $id);
+
+        return response()->json([
+            'message' => 'Users details is successfully updated.',
+            'code' => 200
         ]);
-
-        $user = User::find($id);
-
-        $user->user_type = $request->user_type;
-        $user->first_name = $request->first_name;
-        $user->last_name = $request->last_name;
-        $user->save();
     }
 
     /**
@@ -76,6 +76,11 @@ class UserController extends Controller
      */
     public function destroy(string $id)
     {
-        User::destroy($id);
+        $this->userService->deleteUserData($id);
+
+        return response()->json([
+            'message' => 'Users details is successfully deleted.',
+            'code' => 200
+        ]);
     }
 }

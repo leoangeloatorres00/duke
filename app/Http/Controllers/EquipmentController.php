@@ -2,23 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use App\Http\Requests\EquipmentRequest;
 
-use App\Models\Equipment;
-use App\Models\RegisteredEquipment;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
+use App\Services\EquipmentService;
 
 class EquipmentController extends Controller
 {
+    public function __construct(protected EquipmentService $equipmentService) {}
+
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(EquipmentRequest $request)
     {
-        $authId = $request->user_id;
-        return response()->json(Equipment::where('user_id',  $authId)->paginate(10));
+        $request->validated();
+
+        $result = $this->equipmentService->getEquipmentData($request);
+
+        return response()->json($result);
     }
 
     /**
@@ -32,28 +33,15 @@ class EquipmentController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(EquipmentRequest $request)
     {
-        $request->validate([
-            'description' => 'required|string|max:255|unique:equipment,description',
-            'serial_number' => 'required|string|max:255|unique:equipment,serial_number',
-            'condition' => 'required|string|in:Working,Not Working',
-            'site_id' => 'required|exists:site,site_id'
-        ], [
-            'description.unique' => 'This equipment has already been taken.', 
-            'serial_number.unique' => 'This serial number must be unique per equipment.', 
-        ]);
+        $request->validated();
 
-        $equipment = Equipment::create([
-            'serial_number' => $request->serial_number,
-            'description' => $request->description,
-            'condition' => $request->condition,
-            'user_id' => $request->user_id   
-        ]);
+        $this->equipmentService->createEquipmentData($request);
 
-        RegisteredEquipment::create([
-            'equipment_id' => $equipment->equipment_id,
-            'site_id' => $request->site_id,
+        return response()->json([
+            'message' => 'Equipment details is successfully created.',
+            'code' => 200
         ]);
     }
 
@@ -62,7 +50,7 @@ class EquipmentController extends Controller
      */
     public function show(string $id)
     {
-        return response()->json(Equipment::with('registeredEquipment')->find($id));
+        //
     }
 
     /**
@@ -76,35 +64,16 @@ class EquipmentController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(EquipmentRequest $request, string $id)
     {
-        $request->validate([
-            'description' => [
-                'required',
-                'string',
-                Rule::unique('equipment', 'description')->ignore($id, 'equipment_id')
-            ],
-            'serial_number' => [
-                'required',
-                'string',
-                Rule::unique('equipment', 'serial_number')->ignore($id, 'equipment_id')
-            ],
-            'condition' => 'required|string|in:Working,Not Working',
-            'site_id' => 'required|exists:site,site_id'
-        ], [
-            'description.unique' => 'This equipment has already been taken.', 
-            'serial_number.unique' => 'This serial number must be unique per equipment.', 
-        ]);
+        $request->validated();
 
-        $equipment = Equipment::find($id);
-        
-        $equipment->serial_number = $request->serial_number;
-        $equipment->description = $request->description;
-        $equipment->condition = $request->condition;
-        $equipment->save();
+        $this->equipmentService->updateEquipmentData($request, $id);
 
-        RegisteredEquipment::where('equipment_id', $id)
-            ->update(['site_id' => $request->site_id]);    
+        return response()->json([
+            'message' => 'Equipment details is successfully updated.',
+            'code' => 200
+        ]); 
     }
 
     /**
@@ -112,6 +81,11 @@ class EquipmentController extends Controller
      */
     public function destroy(string $id)
     {
-        Equipment::destroy($id);
+        $this->equipmentService->deleteEquipmentData($id);
+
+        return response()->json([
+            'message' => 'Equipment details is successfully deleted.',
+            'code' => 200
+        ]); 
     }
 }

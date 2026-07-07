@@ -2,6 +2,15 @@
 import { watch, inject, ref } from 'vue'
 import { useForm } from '@inertiajs/vue3';
 
+import { useApi } from '@/Composables/useApi'
+import { useSite } from '@/Composables/useSite'
+
+import { TABS } from '@/Constants/Tabs'
+import { USER } from '@/Constants/User';
+import { SITE } from '@/Constants/Site';
+import { ROUTE } from '@/Constants/Routes';
+import { EQUIPMENT } from '@/Constants/Equipment';
+
 import Modal from '@/Components/Modal.vue'
 import Select from '@/Components/Select.vue'
 import TextInput from '@/Components/TextInput.vue'
@@ -10,6 +19,7 @@ import InputError from '@/Components/InputError.vue'
 import PrimaryButton from '@/Components/PrimaryButton.vue'
 import SecondaryButton from '@/Components/SecondaryButton.vue'
 
+
 const props = defineProps({
     show: Boolean,
     data: Object,
@@ -17,165 +27,106 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
-const tab = inject('tab')
-const user = inject('user');
+const { patchData } = useApi();
+const { getSiteData } = useSite();
+
+const currentTab = inject('currentTab')
+const currentUser = inject('currentUser');
+
 const form = useForm({})
 const sites = ref([])
 
-const types = [
-    { label: 'SuperAdmin', value: 'SuperAdmin' },
-    { label: 'Admin', value: 'Admin' },
-]
-
-const actives = [
-    { label: 'Active', value: 1 },
-    { label: 'Inactive', value: 0 },
-]
-
-const conditions = [
-    { label: 'Working', value: "Working" },
-    { label: 'Not Working', value: "Not Working" },
-]
-
+const ROUTE_MAP = {
+    user: ROUTE.USER_UPDATE_DATA,
+    site: ROUTE.SITE_UPDATE_DATA,
+    equipment: ROUTE.EQUIPMENT_UPDATE_DATA,
+}
 
 watch(() => props.show, (newValue, oldValue) => {
     if (newValue) {
-        getDetailsById()
-        getSiteList()
+        const data = props.data;
+        setFormData(data);
+        fetchSiteData()
     }
 })
 
 const setFormData = (data) => {
-    const user_id = user.value.user_id
+    const user_id = currentUser.value.user_id
 
-    if (tab.value === 'site') {
-        form.user_id = user_id
-        form.description = data.description
-        form.active = data.active
-    }
-
-    if (tab.value === 'user') {
-        form.first_name = data.first_name
-        form.last_name = data.last_name
-        form.user_type = data.user_type
-    }
-
-    if (tab.value === 'equipment') {
-        form.user_id = user_id
-        form.serial_number = data.serial_number
-        form.description = data.description
-        form.condition = data.condition
-        form.site_id = data.registered_equipment.site_id
+    switch (currentTab.value) {
+        case TABS.SITE:
+            console.log(data)
+            form.user_id = user_id
+            form.active = data.active
+            form.site_id = data.site_id
+            form.description = data.description
+            break;
+        case TABS.USER:
+            form.user_type = data.user_type
+            form.last_name = data.last_name
+            form.first_name = data.first_name
+            break;
+        case TABS.EQUIPMENT:
+            form.user_id = user_id
+            form.condition = data.condition
+            form.description = data.description
+            form.equipment_id = data.equipment_id
+            form.serial_number = data.serial_number
+            form.site_id = data.registered_equipment.site_id
+            break;
     }
 }
 
-const getSiteList = (page = 1) => {
-    const user_id = user.value.user_id
-    const url = route(`site.index`, { 'user_id': user_id, 'page': page });
+const fetchSiteData = async () => {
+    const response = await getSiteData()
 
-    axios.get(url)
-        .then(response => {
-            const { data } = response.data;
-            sites.value = data.map((item) => {
-                return { label: item.description, value: item.site_id }
-            });
-        })
-        .catch(error => {
-            console.error(`Deleting ${tab.value}'s items:`, error);
-        });
+    sites.value = response.map((item) => {
+        return { label: item.description, value: item.site_id }
+    });
 }
 
-const getDetailsById = () => {
-    const id = props.data.id
-    const url = route(`${tab.value}.show`, id);
+const submitEditData = async () => {
+    const id = props.data[`${currentTab.value}_id`]
+    const url = route(ROUTE_MAP[currentTab.value], id)
 
-    axios.get(url)
-        .then(response => {
-            const { data } = response
-            setFormData(data)
-        })
-        .catch(error => {
-            console.error(`Deleting ${tab.value}'s items:`, error);
-        });
-}
+    form.clearErrors();
+
+    try {
+        const response = await patchData(url, form);
+
+        if (response.code == 200) {
+            alert(response.message)
+        }
+
+        closeModal()
+    } catch (error) {
+        const { errors } = error.response.data;
+
+        if (errors) {
+            for (const [key, value] of Object.entries(errors)) {
+                form.errors[key] = value[0];
+            }
+        }
+    }
+};
 
 const closeModal = () => {
     emit('close');
 
     setTimeout(() => {
-        form.errors.description = ''
-        form.errors.active = ''
-        form.errors.serial_number = ''
-        form.errors.condition = ''
-        form.errors.site_id = ''
+        form.resetAndClearErrors();
     }, 1000)
-
-};
-
-const editConfirmed = () => {
-    const url = route(`${tab.value}.update`, props.data.id)
-
-    axios.patch(url, form)
-        .then(response => {
-            closeModal();
-        })
-        .catch(error => {
-            const { errors } = error.response.data;
-
-            const descriptionErrors = errors.description;
-            const activeErrors = errors.active;
-            const conditionErrors = errors.condition;
-            const serialNumberErrors = errors.serial_number;
-            const siteErrors = errors.site_id;
-            const userTypeErrors = errors.user_type;
-
-            form.errors.description = ''
-            if (descriptionErrors && descriptionErrors.length > 0) {
-                form.errors.description = descriptionErrors[0];
-                // Output: "This name has already been taken."
-            }
-
-            form.errors.active = ''
-            if (activeErrors && activeErrors.length > 0) {
-                form.errors.active = activeErrors[0];
-                // Output: "This name has already been taken."
-            }
-
-            form.errors.serial_number = ''
-            if (serialNumberErrors && serialNumberErrors.length > 0) {
-                form.errors.serial_number = serialNumberErrors[0];
-                // Output: "This name has already been taken."
-            }
-
-            form.errors.condition = ''
-            if (conditionErrors && conditionErrors.length > 0) {
-                form.errors.condition = conditionErrors[0];
-                // Output: "This name has already been taken."
-            }
-
-            form.errors.site_id = ''
-            if (siteErrors && siteErrors.length > 0) {
-                form.errors.site_id = siteErrors[0];
-                // Output: "This name has already been taken."
-            }
-
-            form.errors.user_type = ''
-            if (userTypeErrors && userTypeErrors.length > 0) {
-                form.errors.user_type = userTypeErrors[0];
-                // Output: "This name has already been taken."
-            }
-        });
 };
 </script>
 
 <template>
-    <Modal max-width="md" :show="show" @close="closeModal">
-        <div class="p-6">
+    <Modal max-width="md" :show="show" @close="closeModal" :closeable="!form.processing">
+        <div class=" p-6">
             <h2 class="text-lg font-medium text-gray-900">
                 Edit Details
             </h2>
 
-            <template v-if="tab === 'user'">
+            <template v-if="currentTab === TABS.USER">
                 <div class="mt-4">
                     <InputLabel for="first_name" value="First Name" />
 
@@ -195,14 +146,14 @@ const editConfirmed = () => {
                 <div class="mt-4">
                     <InputLabel for="user_type" value="User Type" />
 
-                    <Select v-model="form.user_type" :options="types" class="mt-1 block w-full"
+                    <Select v-model="form.user_type" :options="USER.TYPE" class="mt-1 block w-full"
                         placeholder="Select a status" />
 
                     <InputError class="mt-2" :message="form.errors.user_type" />
                 </div>
             </template>
 
-            <template v-if="tab === 'site'">
+            <template v-if="currentTab === TABS.SITE">
                 <div class="mt-4">
                     <InputLabel for="description" value="Site Name" />
 
@@ -214,14 +165,14 @@ const editConfirmed = () => {
                 <div class="mt-4">
                     <InputLabel for="status" value="Status" />
 
-                    <Select v-model="form.active" :options="actives" class="mt-1 block w-full"
+                    <Select v-model="form.active" :options="SITE.STATUS" class="mt-1 block w-full"
                         placeholder="Select a status" />
 
                     <InputError class="mt-2" :message="form.errors.active" />
                 </div>
             </template>
 
-            <template v-if="tab === 'equipment'">
+            <template v-if="currentTab === TABS.EQUIPMENT">
                 <div class="mt-4">
                     <InputLabel for="serial_number" value="Serial Number" />
 
@@ -241,7 +192,7 @@ const editConfirmed = () => {
                 <div class="mt-4">
                     <InputLabel for="status" value="Status" />
 
-                    <Select v-model="form.condition" :options="conditions" class="mt-1 block w-full"
+                    <Select v-model="form.condition" :options="EQUIPMENT.STATUS" class="mt-1 block w-full"
                         placeholder="Select a status" />
 
                     <InputError class="mt-2" :message="form.errors.condition" />
@@ -258,11 +209,13 @@ const editConfirmed = () => {
             </template>
 
             <div class=" mt-6 flex justify-end">
-                <SecondaryButton @click="closeModal">
+                <SecondaryButton @click="closeModal" :class="{ 'opacity-25': form.processing }"
+                    :disabled="form.processing">
                     Cancel
                 </SecondaryButton>
 
-                <PrimaryButton class="ms-3" @click="editConfirmed">
+                <PrimaryButton class="ms-3" @click="submitEditData" :class="{ 'opacity-25': form.processing }"
+                    :disabled="form.processing">
                     Update
                 </PrimaryButton>
             </div>
