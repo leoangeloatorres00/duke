@@ -7,6 +7,7 @@ import { getFullName } from '@/utils';
 import { useApi } from '@/Composables/useApi'
 import { useSite } from '@/Composables/useSite'
 
+import { USER } from '@/Constants/User'
 import { TABS } from '@/Constants/Tabs'
 import { ROUTE } from '@/Constants/Routes'
 import { HEADERS } from '@/Constants/TableHeaders';
@@ -25,13 +26,14 @@ import AddModal from '@/Components/AddModal.vue';
 import EditModal from '@/Components/EditModal.vue';
 import DeleteModal from '@/Components/DeleteModal.vue';
 
+
 const { props } = usePage();
 
 const { getData: fetchData } = useApi();
 const { getSiteData } = useSite();
 
 const modalData = ref({});
-const currentTab = ref(TABS.USER);
+const currentTab = ref(null);
 const currentUser = ref(props.auth.user);
 
 const isAddModalOpen = ref(false);
@@ -55,8 +57,18 @@ const ROUTE_MAP = {
 }
 
 onMounted(async () => {
+    currentTab.value = getInitialTabData()
+
     changeTableHeader(currentTab.value);
 });
+
+const getInitialTabData = () => {
+    if (currentUser.value.user_type === USER.ADMIN) {
+        const { USER, ...remainingTabs } = TABS;
+        return Object.values(remainingTabs)[0]
+    }
+    return Object.values(TABS)[0]
+}
 
 const getTableHeader = () => {
     headers.value = HEADER_MAP[currentTab.value];

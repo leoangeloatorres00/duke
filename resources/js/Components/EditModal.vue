@@ -1,5 +1,5 @@
 <script setup>
-import { watch, inject, ref } from 'vue'
+import { watch, inject, ref, computed } from 'vue'
 import { useForm } from '@inertiajs/vue3';
 
 import { useApi } from '@/Composables/useApi'
@@ -35,12 +35,17 @@ const currentUser = inject('currentUser');
 
 const form = useForm({})
 const sites = ref([])
+const duplicateForm = ref({})
 
 const ROUTE_MAP = {
     user: ROUTE.USER_UPDATE_DATA,
     site: ROUTE.SITE_UPDATE_DATA,
     equipment: ROUTE.EQUIPMENT_UPDATE_DATA,
 }
+
+const isFormUnchanged = computed(() =>
+    JSON.stringify(duplicateForm.value) === JSON.stringify(form.data())
+);
 
 watch(() => props.show, (newValue, oldValue) => {
     if (newValue) {
@@ -55,7 +60,6 @@ const setFormData = (data) => {
 
     switch (currentTab.value) {
         case TABS.SITE:
-            console.log(data)
             form.user_id = user_id
             form.active = data.active
             form.site_id = data.site_id
@@ -75,6 +79,8 @@ const setFormData = (data) => {
             form.site_id = data.registered_equipment.site_id
             break;
     }
+
+    duplicateForm.value = { ...form }
 }
 
 const fetchSiteData = async () => {
@@ -214,8 +220,9 @@ const closeModal = () => {
                     Cancel
                 </SecondaryButton>
 
-                <PrimaryButton class="ms-3" @click="submitEditData" :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing">
+                <PrimaryButton class="ms-3" @click="submitEditData"
+                    :class="{ 'opacity-25': form.processing || isFormUnchanged }"
+                    :disabled="form.processing || isFormUnchanged">
                     Update
                 </PrimaryButton>
             </div>

@@ -1,10 +1,11 @@
 <script setup>
-import { watch, inject, ref } from 'vue'
+import { watch, inject, ref, computed } from 'vue'
 import { useForm } from '@inertiajs/vue3';
 
 import { useApi } from '@/Composables/useApi'
 import { useSite } from '@/Composables/useSite'
 
+import { TABS } from '@/Constants/Tabs';
 import { SITE } from '@/Constants/Site';
 import { ROUTE } from '@/Constants/Routes';
 import { EQUIPMENT } from '@/Constants/Equipment';
@@ -38,23 +39,11 @@ const ROUTE_MAP = {
     equipment: ROUTE.EQUIPMENT_ADD_DATA,
 }
 
-const setFormData = () => {
-    if (currentTab.value === 'site') {
-        form.defaults({
-            description: '',
-            active: ''
-        });
-    }
-
-    if (currentTab.value === 'equipment') {
-        form.defaults({
-            serial_number: '',
-            description: '',
-            condition: '',
-            site_id: ''
-        });
-    }
-}
+const isFormUnchanged = computed(() =>
+    !Object.values(form.data()).some(value => {
+        return value !== null && value !== undefined && String(value).trim() !== "";
+    })
+);
 
 watch(() => props.show, (newValue, oldValue) => {
     if (newValue) {
@@ -62,6 +51,27 @@ watch(() => props.show, (newValue, oldValue) => {
         fetchSiteData()
     }
 })
+
+const setFormData = () => {
+
+    switch (currentTab.value) {
+        case TABS.SITE:
+            form.defaults({
+                description: '',
+                active: ''
+            })
+
+            break;
+        case TABS.EQUIPMENT:
+            form.defaults({
+                description: '',
+                serial_number: '',
+                condition: '',
+                site_id: ''
+            })
+            break;
+    }
+}
 
 const fetchSiteData = async () => {
     const response = await getSiteData()
@@ -175,8 +185,9 @@ const closeModal = () => {
                     Cancel
                 </SecondaryButton>
 
-                <PrimaryButton class="ms-3" @click="submitAddData" :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing">
+                <PrimaryButton class="ms-3" @click="submitAddData"
+                    :class="{ 'opacity-25': form.processing || isFormUnchanged }"
+                    :disabled="form.processing || isFormUnchanged">
                     Create
                 </PrimaryButton>
             </div>
