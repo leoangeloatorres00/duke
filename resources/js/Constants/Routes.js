@@ -7,7 +7,7 @@ export const ROUTE = {
     USER_UPDATE_DATA: "user.update",
     SITE_UPDATE_DATA: "site.update",
     EQUIPMENT_UPDATE_DATA: "equipment.update",
-    USER_DELETE_DATA: "user.delete",
-    SITE_DELETE_DATA: "site.delete",
-    EQUIPMENT_DELETE_DATA: "equipment.delete",
+    USER_DELETE_DATA: "user.destroy",
+    SITE_DELETE_DATA: "site.destroy",
+    EQUIPMENT_DELETE_DATA: "equipment.destroy",
 };
