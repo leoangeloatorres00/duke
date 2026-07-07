@@ -9,14 +9,12 @@ use App\Models\RegisteredEquipment;
 
 class EquipmentService
 {
-    public const string EQUIPMENT_INDEX_ROUTE = 'equipment.index';
-
     public function getEquipmentData(Request $request) {
         $user_id = $request->user_id;
 
         $query = Equipment::with(['registeredEquipment', 'user'])->where('user_id',  $user_id);
 
-        return $request->route()->getName() === EquipmentService::EQUIPMENT_INDEX_ROUTE
+        return $request->has('page')
             ? $query->paginate(10) 
             : $query->get();
     }

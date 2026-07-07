@@ -15,7 +15,7 @@ export function useSite() {
         try {
             const response = await getData(route(url), params);
 
-            return response.data;
+            return response;
         } catch (err) {
             console.log(err);
         }

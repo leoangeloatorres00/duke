@@ -8,14 +8,12 @@ use App\Models\User;
 
 class UserService
 {
-    public const string USER_INDEX_ROUTE = 'user.index';
-
     public function getUserData(Request $request) {
         $user_id = $request->user_id;
 
         $query = User::where('user_id', '!=', $user_id);
 
-        return $request->route()->getName() === UserService::USER_INDEX_ROUTE 
+        return $request->has('page')
             ? $query->paginate(10) 
             : $query->get();
     }

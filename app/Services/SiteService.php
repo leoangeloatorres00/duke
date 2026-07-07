@@ -10,14 +10,12 @@ use App\Models\RegisteredEquipment;
 
 class SiteService
 {
-    public const string SITE_INDEX_ROUTE = 'site.index';
-
     public function getSiteData(Request $request) {
         $user_id = $request->user_id;
 
         $query = Site::with('user')->where('user_id', $user_id);
 
-        return $request->route()->getName() === SiteService::SITE_INDEX_ROUTE
+        return $request->has('page') 
             ? $query->paginate(10) 
             : $query->get();
     }
