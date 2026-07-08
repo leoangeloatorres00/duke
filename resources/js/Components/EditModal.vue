@@ -3,7 +3,6 @@ import { watch, inject, ref, computed } from 'vue'
 import { useForm } from '@inertiajs/vue3';
 
 import { useApi } from '@/Composables/useApi'
-import { useSite } from '@/Composables/useSite'
 
 import { TABS } from '@/Constants/Tabs'
 import { USER } from '@/Constants/User';
@@ -28,13 +27,11 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const { patchData } = useApi();
-const { getSiteData } = useSite();
 
 const currentTab = inject('currentTab')
 const currentUser = inject('currentUser');
 
 const form = useForm({})
-const sites = ref([])
 const duplicateForm = ref({})
 
 const ROUTE_MAP = {
@@ -51,7 +48,6 @@ watch(() => props.show, (newValue, oldValue) => {
     if (newValue) {
         const data = props.data;
         setFormData(data);
-        fetchSiteData()
     }
 })
 
@@ -76,19 +72,10 @@ const setFormData = (data) => {
             form.description = data.description
             form.equipment_id = data.equipment_id
             form.serial_number = data.serial_number
-            form.site_id = data.registered_equipment.site_id
             break;
     }
 
     duplicateForm.value = { ...form }
-}
-
-const fetchSiteData = async () => {
-    const response = await getSiteData()
-
-    sites.value = response.map((item) => {
-        return { label: item.description, value: item.site_id }
-    });
 }
 
 const submitEditData = async () => {
@@ -202,15 +189,6 @@ const closeModal = () => {
                         placeholder="Select a status" />
 
                     <InputError class="mt-2" :message="form.errors.condition" />
-                </div>
-
-                <div class="mt-4">
-                    <InputLabel for="site" value="Site Name" />
-
-                    <Select v-model="form.site_id" :options="sites" class="mt-1 block w-full"
-                        placeholder="Select a site" />
-
-                    <InputError class="mt-2" :message="form.errors.site_id" />
                 </div>
             </template>
 

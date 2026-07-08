@@ -10,4 +10,6 @@ export const ROUTE = {
     USER_DELETE_DATA: "user.destroy",
     SITE_DELETE_DATA: "site.destroy",
     EQUIPMENT_DELETE_DATA: "equipment.destroy",
+    REG_EQUIPMENT_DATA: "registered_equipment.index",
+    REG_EQUIPMENT_UPDATE_DATA: "registered_equipment.store",
 };

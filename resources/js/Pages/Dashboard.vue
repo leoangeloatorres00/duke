@@ -5,7 +5,6 @@ import { usePage } from '@inertiajs/vue3';
 import { getFullName } from '@/utils';
 
 import { useApi } from '@/Composables/useApi'
-import { useSite } from '@/Composables/useSite'
 
 import { USER } from '@/Constants/User'
 import { TABS } from '@/Constants/Tabs'
@@ -17,6 +16,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import Tabs from '@/Components/Tabs.vue';
 import Table from '@/Components/Table.vue';
 import Badge from '@/Components/Badge.vue';
+import AddIcon from '@/Components/AddIcon.vue'
 import EditIcon from '@/Components/EditIcon.vue'
 import DeleteIcon from '@/Components/DeleteIcon.vue'
 import Pagination from '@/Components/Pagination.vue';
@@ -25,12 +25,11 @@ import SecondaryButton from '@/Components/SecondaryButton.vue';
 import AddModal from '@/Components/AddModal.vue';
 import EditModal from '@/Components/EditModal.vue';
 import DeleteModal from '@/Components/DeleteModal.vue';
-
+import AddEquipmentModal from '@/Components/AddEquipmentModal.vue';
 
 const { props } = usePage();
 
 const { getData: fetchData } = useApi();
-const { getSiteData } = useSite();
 
 const modalData = ref({});
 const currentTab = ref(null);
@@ -39,6 +38,7 @@ const currentUser = ref(props.auth.user);
 const isAddModalOpen = ref(false);
 const isEditModalOpen = ref(false);
 const isDeleteModalOpen = ref(false);
+const isAddEquipmentModalOpen = ref(false);
 
 const pages = ref({});
 const items = ref([]);
@@ -104,12 +104,12 @@ const changeTableHeader = (value) => {
 }
 
 const openAddModal = async () => {
-    const sites = await getSiteData();
+    // const sites = await getSiteData();
 
-    if (sites.length == 0 && currentTab.value == TABS.EQUIPMENT) {
-        alert("A site must be added first before adding equipment.");
-        return
-    }
+    // if (sites.length == 0 && currentTab.value == TABS.EQUIPMENT) {
+    //     alert("A site must be added first before adding equipment.");
+    //     return
+    // }
 
     isAddModalOpen.value = true;
 }
@@ -124,10 +124,16 @@ const openDeleteModal = (item) => {
     modalData.value = item;
 }
 
+const openAddEquipmentModal = (item) => {
+    isAddEquipmentModalOpen.value = true;
+    modalData.value = item;
+}
+
 const closeModal = () => {
     isAddModalOpen.value = false;
     isEditModalOpen.value = false;
     isDeleteModalOpen.value = false;
+    isAddEquipmentModalOpen.value = false;
 
     setTimeout(() => {
         getTableData();
@@ -147,6 +153,8 @@ provide('currentUser', currentUser)
                 <EditModal :show="isEditModalOpen" :data="modalData" @close="closeModal" />
 
                 <DeleteModal :show="isDeleteModalOpen" :data="modalData" @close="closeModal" />
+
+                <AddEquipmentModal :show="isAddEquipmentModalOpen" :data="modalData" @close="closeModal" />
 
                 <div class="flex justify-between">
                     <Tabs :currentTab="currentTab" @handleChangeTab="changeTableHeader" />
@@ -173,11 +181,14 @@ provide('currentUser', currentUser)
                         <template #cell-action="{ item }">
                             <div class="flex gap-2 w-[100px]">
                                 <button>
-                                    <EditIcon @click="openEditModal(item)" aria-label="Open edit modal"></EditIcon>
+                                    <EditIcon @click="openEditModal(item)" aria-label="Open edit modal" />
                                 </button>
                                 <button>
-                                    <DeleteIcon @click="openDeleteModal(item)" aria-label="Open delete modal">
-                                    </DeleteIcon>
+                                    <DeleteIcon @click="openDeleteModal(item)" aria-label="Open delete modal" />
+                                </button>
+                                <button v-if="currentTab === 'site'">
+                                    <AddIcon @click="openAddEquipmentModal(item)"
+                                        aria-label="Open add equipment modal" />
                                 </button>
                             </div>
                         </template>

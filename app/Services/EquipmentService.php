@@ -5,7 +5,6 @@ namespace App\Services;
 use Illuminate\Http\Request;
 
 use App\Models\Equipment;
-use App\Models\RegisteredEquipment;
 
 class EquipmentService
 {
@@ -26,11 +25,6 @@ class EquipmentService
             'condition' => $request->condition,
             'user_id' => $request->user_id   
         ]);
-
-        RegisteredEquipment::create([
-            'equipment_id' => $equipment->equipment_id,
-            'site_id' => $request->site_id,
-        ]);
     }
 
     public function updateEquipmentData(Request $request, string $id) {
@@ -40,9 +34,7 @@ class EquipmentService
         $equipment->description = $request->description;
         $equipment->condition = $request->condition;
         $equipment->save();
-
-        RegisteredEquipment::where('equipment_id', $id)
-            ->update(['site_id' => $request->site_id]);    
+    
     }
 
     public function deleteEquipmentData(string $id) {
