@@ -25,18 +25,38 @@ class RegisteredEquipmentService
         $add_items = [];
         $delete_items = [];
 
+        $filtered_add_items = [];
+
         foreach ($check_status as $key => $value) {
             if($value) {
-                array_push($add_items, ['equipment_id' => $equipment_ids[$key], 'site_id' => $site_id]);
+                array_push($add_items, $equipment_ids[$key]);
             } else {
                 array_push($delete_items, $equipment_ids[$key]);
             }
+        } 
+
+        
+        $existingRecords = RegisteredEquipment::where('site_id', $site_id)->whereIn('equipment_id', $add_items)
+        ->get();
+
+        foreach ($existingRecords as $key => $value) {
+            $equipment_id_exists = array_search($value['equipment_id'], $add_items);
+
+            if($equipment_id_exists !== false) {
+                unset($add_items[$equipment_id_exists]);
+            }
+        } 
+
+        foreach($add_items as $key => $value) {
+            array_push($filtered_add_items, ['equipment_id' => $value, 'site_id' => $site_id]);
         }
 
-        RegisteredEquipment::insert($add_items);
+        if(count($filtered_add_items) > 0) {
+            RegisteredEquipment::insert($filtered_add_items);
+        }
 
-        RegisteredEquipment::whereIn('equipment_id', $delete_items)
-            ->where('site_id', $site_id)
-            ->delete();
+        RegisteredEquipment::where('site_id', $site_id)
+        ->whereIn('equipment_id', $delete_items)
+        ->delete();
     }   
 }

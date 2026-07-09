@@ -73,7 +73,7 @@ const fetchEquipmentData = async () => {
         return { label: item.description, value: item.equipment_id, check: isChecked }
     });
 
-    equipments.value = [...allEquipments.value].slice(0, 2)
+    equipments.value = [...allEquipments.value].slice(0, 10)
 }
 
 const submitAddEquipmentData = async () => {

@@ -29,7 +29,7 @@ class RegisteredEquipmentController extends Controller
     {
         $request->validated();
 
-        $result = $this->registeredEquipmentService->updateRegisteredEquipmentData($request);
+        $this->registeredEquipmentService->updateRegisteredEquipmentData($request);
 
         return response()->json([
             'message' => 'Registered equipment details is successfully updated.',
